@@ -1,19 +1,29 @@
 ﻿#include <SFML/Graphics.hpp>
 #include <vector>
 #include <cmath>
+#include <thread>
+#include <chrono>
 
 enum class ToolMode { Brush, Eraser };
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(1280, 720), "Draw and Erase");
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "My Canvas App");
+
+    // Создаем прямоугольник для фона
+    sf::RectangleShape background(sf::Vector2f(window.getSize()));
+    background.setFillColor(sf::Color(100, 100, 100));
 
     // Канвас для рисования
-    sf::RectangleShape myCanvas(sf::Vector2f(800, 620));
+    sf::RectangleShape myCanvas(sf::Vector2f(840, 620));
     myCanvas.setFillColor(sf::Color::White);
-    myCanvas.setPosition(sf::Vector2f(430, 50));
-    myCanvas.setOutlineColor(sf::Color(50, 50, 50));
-    myCanvas.setOutlineThickness(3);
+    myCanvas.setPosition(sf::Vector2f(390, 50));
+
+
+    // Определите базовый цвет кнопки
+    sf::Color normalButtonColor(200, 200, 200);
+    sf::Color pressedButtonColor(150, 150, 150);  // Более тёмный серый для нажатия
+
 
     // Вектор для хранения всех линий (каждая линия — вектор сегментов)
     std::vector<std::vector<sf::RectangleShape>> allLines;
@@ -30,18 +40,19 @@ int main()
     float brushSize = 5.0f;
 
     // Ползунок для выбора толщины
-    sf::RectangleShape slider(sf::Vector2f(200, 10));
-    slider.setFillColor(sf::Color::Black);
+    sf::RectangleShape slider(sf::Vector2f(290, 10));
+    slider.setFillColor(sf::Color(50, 50, 50));
     slider.setPosition(50, 650);
 
     // Индикатор положения на ползунке
     sf::CircleShape sliderIndicator(10);
     sliderIndicator.setFillColor(sf::Color::Red);
+
     sliderIndicator.setPosition(slider.getPosition().x + (brushSize - 1) * 20, slider.getPosition().y - 5);
 
     // Текст для отображения текущей толщины
     sf::Font font;
-    font.loadFromFile("arial.ttf"); // Путь к шрифту
+    font.loadFromFile("arial.ttf");
     sf::Text brushSizeText;
     brushSizeText.setFont(font);
     brushSizeText.setCharacterSize(20);
@@ -49,28 +60,71 @@ int main()
     brushSizeText.setPosition(50, 620);
 
     // Кнопка "Кисть"
-    sf::RectangleShape brushButton(sf::Vector2f(100, 40));
-    brushButton.setFillColor(sf::Color(200, 200, 200));
+    sf::RectangleShape brushButton(sf::Vector2f(140, 40));
+    brushButton.setFillColor(normalButtonColor);
     brushButton.setPosition(50, 550);
     sf::Text brushText("Brush", font, 20);
     brushText.setFillColor(sf::Color::Black);
-    brushText.setPosition(brushButton.getPosition().x + 10, brushButton.getPosition().y + 5);
+    brushText.setPosition(brushButton.getPosition().x + 44, brushButton.getPosition().y + 6);
 
     // Кнопка "Ластик"
-    sf::RectangleShape eraserButton(sf::Vector2f(100, 40));
-    eraserButton.setFillColor(sf::Color(200, 200, 200));
-    eraserButton.setPosition(160, 550);
+    sf::RectangleShape eraserButton(sf::Vector2f(140, 40));
+    eraserButton.setFillColor(normalButtonColor);
+    eraserButton.setPosition(200, 550);
     sf::Text eraserText("Eraser", font, 20);
     eraserText.setFillColor(sf::Color::Black);
-    eraserText.setPosition(eraserButton.getPosition().x + 10, eraserButton.getPosition().y + 5);
+    eraserText.setPosition(eraserButton.getPosition().x + 39, eraserButton.getPosition().y + 6);
+
 
     // Кнопка "Сохранить"
+    sf::RectangleShape saveButton(sf::Vector2f(290, 40));
+    saveButton.setFillColor(normalButtonColor);
+    saveButton.setPosition(50, 600);
     sf::Text saveText("Save", font, 20);
     saveText.setFillColor(sf::Color::Black);
-    saveText.setPosition(50, 600);
+    saveText.setPosition(saveButton.getPosition().x + 120, saveButton.getPosition().y + 6);
+
+    // Цвета палитры
+    std::vector<sf::Color> paletteColors = {
+        sf::Color::Red, 
+        sf::Color::Green, 
+        sf::Color::Blue,
+        sf::Color::Yellow, 
+        sf::Color::Magenta, 
+        sf::Color::Cyan,
+        sf::Color(255, 165, 0), // Оранжевый
+        sf::Color(128, 0, 128), // Фиолетовый
+        sf::Color::Black, 
+        sf::Color::White
+    };
+
+    // Вектор для хранения квадратов палитры
+    std::vector<sf::RectangleShape> paletteSquares;
+    sf::Vector2f palettePosition(50, 50); // Начальная позиция палитры
+    float squareSize = 20; // Размер квадрата палитры
+    float padding = 10;    // Расстояние между квадратами
+
+    // Создаем квадраты палитры
+    for (size_t i = 0; i < paletteColors.size(); ++i)
+    {
+        sf::RectangleShape square(sf::Vector2f(squareSize, squareSize));
+        square.setFillColor(paletteColors[i]);
+        square.setPosition(palettePosition.x + i * (squareSize + padding), palettePosition.y);
+        paletteSquares.push_back(square);
+    }
+
+    sf::Color brushColor = sf::Color::Black; // Начальный цвет кисти
+
+    // Окно для отображения выбранного цвета кисти
+    sf::RectangleShape selectedColorDisplay(sf::Vector2f(290, squareSize));
+    selectedColorDisplay.setFillColor(brushColor);
+    selectedColorDisplay.setPosition(palettePosition.x, palettePosition.y + squareSize + padding * 2);
+
+
 
     while (window.isOpen())
     {
+
         sf::Event event;
         while (window.pollEvent(event))
         {
@@ -82,43 +136,67 @@ int main()
             {
                 sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 
-                // Обработка нажатия на кнопку "Сохранить"
-                if (saveText.getGlobalBounds().contains(mousePos.x, mousePos.y))
+                // Проверяем, наведена ли мышь на квадрат палитры
+                for (size_t i = 0; i < paletteSquares.size(); ++i)
                 {
-                    // Создаем RenderTexture точно под размер канваса
-                    sf::RenderTexture renderTexture;
-                    renderTexture.create(myCanvas.getSize().x, myCanvas.getSize().y);
-                    renderTexture.clear(sf::Color::White);
-
-                    // Сдвигаем все элементы так, чтобы они соответствовали началу RenderTexture
-                    for (const auto& line : allLines)
+                    if (paletteSquares[i].getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)))
                     {
-                        for (auto segment : line)
+                        if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
                         {
-                            segment.move(-myCanvas.getPosition());  // Смещаем элементы к началу RenderTexture
-                            renderTexture.draw(segment);
+                            brushColor = paletteSquares[i].getFillColor(); // Устанавливаем цвет кисти при нажатии
+                            selectedColorDisplay.setFillColor(brushColor);
                         }
                     }
+                }
 
-                    // Сохраняем RenderTexture в изображение
-                    renderTexture.display();
-                    sf::Image image = renderTexture.getTexture().copyToImage();
-                    image.saveToFile("drawing.png");
+                // Обработка нажатия на кнопку "Сохранить"
+                if (saveButton.getGlobalBounds().contains(mousePos.x, mousePos.y))
+                {
+                    // Устанавливаем цвет нажатия
+                    saveButton.setFillColor(pressedButtonColor);
+                    window.draw(saveButton);    // Обновляем отображение, чтобы цвет изменился сразу
+                    window.draw(saveText);      // Рисуем текст на кнопке "Save"
+                    window.display();           // Перерисовка окна для немедленного отображения эффекта
+
+                    // Запускаем асинхронный таймер для временного изменения цвета
+                    std::thread([&saveButton, normalButtonColor]() {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(150));  // Пауза на 150 мс
+                        saveButton.setFillColor(normalButtonColor);  // Возвращаем нормальный цвет
+                        }).detach();  // Отсоединяем поток, чтобы не блокировать основной поток
+
+                        // Код для сохранения изображения
+                        sf::RenderTexture renderTexture;
+                        renderTexture.create(myCanvas.getSize().x, myCanvas.getSize().y);
+                        renderTexture.clear(sf::Color::White);
+
+                        // Смещаем все элементы так, чтобы они соответствовали началу RenderTexture
+                        for (const auto& line : allLines)
+                        {
+                            for (auto segment : line)
+                            {
+                                segment.move(-myCanvas.getPosition());
+                                renderTexture.draw(segment);
+                            }
+                        }
+
+                        renderTexture.display();
+                        sf::Image image = renderTexture.getTexture().copyToImage();
+                        image.saveToFile("drawing.png");
                 }
 
                 // Обработка выбора кисти
                 if (brushButton.getGlobalBounds().contains(mousePos.x, mousePos.y))
                 {
                     currentTool = ToolMode::Brush;
-                    brushButton.setFillColor(sf::Color(100, 100, 100));
-                    eraserButton.setFillColor(sf::Color(200, 200, 200));
+                    brushButton.setFillColor(pressedButtonColor);
+                    eraserButton.setFillColor(normalButtonColor);
                 }
                 // Обработка выбора ластика
                 else if (eraserButton.getGlobalBounds().contains(mousePos.x, mousePos.y))
                 {
                     currentTool = ToolMode::Eraser;
-                    eraserButton.setFillColor(sf::Color(100, 100, 100));
-                    brushButton.setFillColor(sf::Color(200, 200, 200));
+                    eraserButton.setFillColor(pressedButtonColor);
+                    brushButton.setFillColor(normalButtonColor);
                 }
                 // Проверка нажатия на ползунок
                 else if (slider.getGlobalBounds().contains(mousePos.x, mousePos.y))
@@ -151,7 +229,7 @@ int main()
                 if (mousePos != lastMousePos)
                 {
                     sf::RectangleShape lineSegment;
-                    lineSegment.setFillColor(currentTool == ToolMode::Brush ? sf::Color::Black : sf::Color::White);
+                    lineSegment.setFillColor(currentTool == ToolMode::Brush ? brushColor : sf::Color::White);
 
                     sf::Vector2f delta = mousePos - lastMousePos;
                     float length = std::sqrt(delta.x * delta.x + delta.y * delta.y);
@@ -174,7 +252,9 @@ int main()
             isDrawing = false;
         }
 
+
         window.clear(sf::Color::White);
+        window.draw(background);
         window.draw(myCanvas);
 
         for (const auto& line : allLines)
@@ -190,6 +270,15 @@ int main()
             window.draw(segment);
         }
 
+        // Рисуем палитру
+        for (const auto& square : paletteSquares)
+        {
+            window.draw(square);
+        }
+
+        // Рисуем окно с выбранным цветом
+        window.draw(selectedColorDisplay);
+
         window.draw(slider);
         window.draw(sliderIndicator);
         window.draw(brushSizeText);
@@ -197,8 +286,11 @@ int main()
         // Рисуем кнопки и их текст
         window.draw(brushButton);
         window.draw(brushText);
+
         window.draw(eraserButton);
         window.draw(eraserText);
+
+        window.draw(saveButton);
         window.draw(saveText);
 
         window.display();
