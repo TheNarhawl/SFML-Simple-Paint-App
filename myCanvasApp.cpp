@@ -8,7 +8,10 @@ enum class ToolMode { Brush, Eraser };
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(1280, 720), "My Canvas App");
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "My Canvas App", sf::Style::Titlebar | sf::Style::Close);
+    window.setFramerateLimit(60);
+
+
 
     // Создаем прямоугольник для фона
     sf::RectangleShape background(sf::Vector2f(window.getSize()));
@@ -18,6 +21,15 @@ int main()
     sf::RectangleShape myCanvas(sf::Vector2f(840, 620));
     myCanvas.setFillColor(sf::Color::White);
     myCanvas.setPosition(sf::Vector2f(390, 50));
+
+    // Загружаем изображение для кастомного курсора
+    sf::Image cursorImage;
+    if (!cursorImage.loadFromFile("C:/cpp projects/myCanvasApp/Resources/cursor.png")) {
+        return -1;
+    }
+    sf::Cursor cursor;
+    cursor.loadFromPixels(cursorImage.getPixelsPtr(), cursorImage.getSize(), sf::Vector2u(0, 0));
+    window.setMouseCursor(cursor);
 
 
     // Определите базовый цвет кнопки
@@ -42,47 +54,91 @@ int main()
     // Ползунок для выбора толщины
     sf::RectangleShape slider(sf::Vector2f(290, 10));
     slider.setFillColor(sf::Color(50, 50, 50));
-    slider.setPosition(50, 650);
+    slider.setPosition(50, 300);
 
     // Индикатор положения на ползунке
-    sf::CircleShape sliderIndicator(10);
-    sliderIndicator.setFillColor(sf::Color::Red);
-
-    sliderIndicator.setPosition(slider.getPosition().x + (brushSize - 1) * 20, slider.getPosition().y - 5);
+    sf::RectangleShape sliderIndicator(sf::Vector2f(10, 20));
+    sliderIndicator.setFillColor(sf::Color(0, 138, 230));
+    sliderIndicator.setPosition(slider.getPosition().x + (brushSize - 1) * 35, slider.getPosition().y - 5);
 
     // Текст для отображения текущей толщины
     sf::Font font;
-    font.loadFromFile("arial.ttf");
+    font.loadFromFile("alphbeta.ttf");
     sf::Text brushSizeText;
     brushSizeText.setFont(font);
-    brushSizeText.setCharacterSize(20);
+    brushSizeText.setCharacterSize(32);
     brushSizeText.setFillColor(sf::Color::Black);
-    brushSizeText.setPosition(50, 620);
+    brushSizeText.setPosition(slider.getPosition().x, slider.getPosition().y - 45);
 
     // Кнопка "Кисть"
+    sf::Texture brushIconTexture;
+    if (!brushIconTexture.loadFromFile("C:/cpp projects/myCanvasApp/Resources/brush.png")) {
+        return -1;
+    }
+
+    sf::Sprite brushIconSprite;
+    brushIconSprite.setTexture(brushIconTexture);
+
     sf::RectangleShape brushButton(sf::Vector2f(140, 40));
     brushButton.setFillColor(normalButtonColor);
-    brushButton.setPosition(50, 550);
+    brushButton.setPosition(50, 570);
     sf::Text brushText("Brush", font, 20);
     brushText.setFillColor(sf::Color::Black);
-    brushText.setPosition(brushButton.getPosition().x + 44, brushButton.getPosition().y + 6);
+    brushText.setPosition(brushButton.getPosition().x + 15, brushButton.getPosition().y + 6);
+    brushIconSprite.setPosition(brushButton.getPosition().x + 100, brushButton.getPosition().y + 5);
 
     // Кнопка "Ластик"
+    sf::Texture eraserIconTexture;
+    if (!eraserIconTexture.loadFromFile("C:/cpp projects/myCanvasApp/Resources/eraser.png")) {
+        return -1;
+    }
+
+    sf::Sprite eraserIconSprite;
+    eraserIconSprite.setTexture(eraserIconTexture);
+
     sf::RectangleShape eraserButton(sf::Vector2f(140, 40));
     eraserButton.setFillColor(normalButtonColor);
-    eraserButton.setPosition(200, 550);
+    eraserButton.setPosition(200, 570);
     sf::Text eraserText("Eraser", font, 20);
     eraserText.setFillColor(sf::Color::Black);
-    eraserText.setPosition(eraserButton.getPosition().x + 39, eraserButton.getPosition().y + 6);
+    eraserText.setPosition(eraserButton.getPosition().x + 15, eraserButton.getPosition().y + 6);
+    eraserIconSprite.setPosition(eraserButton.getPosition().x + 100, eraserButton.getPosition().y + 5);
+
 
 
     // Кнопка "Сохранить"
-    sf::RectangleShape saveButton(sf::Vector2f(290, 40));
+    sf::Texture saveIconTexture;
+    if (!saveIconTexture.loadFromFile("C:/cpp projects/myCanvasApp/Resources/save.png")) {
+        return -1;
+    }
+    sf::Sprite saveIconSprite;
+    saveIconSprite.setTexture(saveIconTexture);
+
+    sf::RectangleShape saveButton(sf::Vector2f(140, 40));
     saveButton.setFillColor(normalButtonColor);
-    saveButton.setPosition(50, 600);
+    saveButton.setPosition(200, 630);
     sf::Text saveText("Save", font, 20);
     saveText.setFillColor(sf::Color::Black);
-    saveText.setPosition(saveButton.getPosition().x + 120, saveButton.getPosition().y + 6);
+    saveText.setPosition(saveButton.getPosition().x + 15, saveButton.getPosition().y + 6);
+    saveIconSprite.setPosition(saveButton.getPosition().x + 100, saveButton.getPosition().y + 5);
+
+    // Кнопка "Сохранить"
+    sf::Texture deleteIconTexture;
+    if (!deleteIconTexture.loadFromFile("C:/cpp projects/myCanvasApp/Resources/trash.png")) {
+        return -1;
+    }
+    sf::Sprite deleteIconSprite;
+    deleteIconSprite.setTexture(deleteIconTexture);
+
+    sf::RectangleShape deleteButton(sf::Vector2f(140, 40));
+    deleteButton.setFillColor(normalButtonColor);
+    deleteButton.setPosition(50, 630);
+    sf::Text deleteText("Delete", font, 20);
+    deleteText.setFillColor(sf::Color::Black);
+    deleteText.setPosition(deleteButton.getPosition().x + 15, deleteButton.getPosition().y + 6);
+    deleteIconSprite.setPosition(deleteButton.getPosition().x + 100, deleteButton.getPosition().y + 7);
+
+
 
     // Цвета палитры
     std::vector<sf::Color> paletteColors = {
@@ -131,6 +187,7 @@ int main()
             if (event.type == sf::Event::Closed)
                 window.close();
 
+
             // Проверка нажатия мыши на кнопки
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
             {
@@ -156,10 +213,13 @@ int main()
                     saveButton.setFillColor(pressedButtonColor);
                     window.draw(saveButton);    // Обновляем отображение, чтобы цвет изменился сразу
                     window.draw(saveText);      // Рисуем текст на кнопке "Save"
+                    window.draw(saveIconSprite);
                     window.display();           // Перерисовка окна для немедленного отображения эффекта
 
                     // Запускаем асинхронный таймер для временного изменения цвета
-                    std::thread([&saveButton, normalButtonColor]() {
+                    std::thread([&saveButton, normalButtonColor]() 
+                        {
+
                         std::this_thread::sleep_for(std::chrono::milliseconds(150));  // Пауза на 150 мс
                         saveButton.setFillColor(normalButtonColor);  // Возвращаем нормальный цвет
                         }).detach();  // Отсоединяем поток, чтобы не блокировать основной поток
@@ -184,6 +244,29 @@ int main()
                         image.saveToFile("drawing.png");
                 }
 
+                // Проверка нажатия на Delete Button
+                if (deleteButton.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
+                    deleteButton.setFillColor(pressedButtonColor);
+
+                    // Запускаем асинхронный таймер
+                    std::thread([&deleteButton, normalButtonColor]() {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(150));  // Пауза на 150 мс
+                        deleteButton.setFillColor(normalButtonColor);  // Возвращаем нормальный цвет
+                        }).detach();  // Отсоединяем поток, чтобы не блокировать основной поток
+
+                        // Очищаем myCanvas
+                        myCanvas.setFillColor(sf::Color::White);
+                        currentLineSegments.clear();
+                        allLines.clear();
+
+                        // Перерисовываем окно
+                        window.draw(deleteButton);
+                        window.draw(deleteText);
+                        window.draw(deleteIconSprite);
+                        window.draw(myCanvas);
+                        window.display();
+                }
+
                 // Обработка выбора кисти
                 if (brushButton.getGlobalBounds().contains(mousePos.x, mousePos.y))
                 {
@@ -191,6 +274,7 @@ int main()
                     brushButton.setFillColor(pressedButtonColor);
                     eraserButton.setFillColor(normalButtonColor);
                 }
+
                 // Обработка выбора ластика
                 else if (eraserButton.getGlobalBounds().contains(mousePos.x, mousePos.y))
                 {
@@ -198,6 +282,7 @@ int main()
                     eraserButton.setFillColor(pressedButtonColor);
                     brushButton.setFillColor(normalButtonColor);
                 }
+
                 // Проверка нажатия на ползунок
                 else if (slider.getGlobalBounds().contains(mousePos.x, mousePos.y))
                 {
@@ -205,10 +290,11 @@ int main()
                     if (newPos < slider.getPosition().x) newPos = slider.getPosition().x;
                     if (newPos > slider.getPosition().x + slider.getSize().x) newPos = slider.getPosition().x + slider.getSize().x;
 
-                    sliderIndicator.setPosition(newPos - sliderIndicator.getRadius(), sliderIndicator.getPosition().y);
+                    sliderIndicator.setPosition(newPos - sliderIndicator.getSize().x, sliderIndicator.getPosition().y);
 
-                    brushSize = 1 + (newPos - slider.getPosition().x) / 20;  // диапазон от 1 до 10
+                    brushSize = 1 + (newPos - slider.getPosition().x) / 30;  // диапазон от 1 до 10
                 }
+
                 else if (myCanvas.getGlobalBounds().contains(mousePos.x, mousePos.y))
                 {
                     currentLineSegments.clear();
@@ -231,7 +317,9 @@ int main()
                     sf::RectangleShape lineSegment;
                     lineSegment.setFillColor(currentTool == ToolMode::Brush ? brushColor : sf::Color::White);
 
+
                     sf::Vector2f delta = mousePos - lastMousePos;
+
                     float length = std::sqrt(delta.x * delta.x + delta.y * delta.y);
                     lineSegment.setSize(sf::Vector2f(length, brushSize));
                     lineSegment.setOrigin(0, brushSize / 2);
@@ -243,6 +331,8 @@ int main()
                 }
             }
         }
+
+
         else if (isDrawing && !sf::Mouse::isButtonPressed(sf::Mouse::Left))
         {
             if (!currentLineSegments.empty())
@@ -253,7 +343,11 @@ int main()
         }
 
 
-        window.clear(sf::Color::White);
+
+
+
+
+        
         window.draw(background);
         window.draw(myCanvas);
 
@@ -286,12 +380,19 @@ int main()
         // Рисуем кнопки и их текст
         window.draw(brushButton);
         window.draw(brushText);
+        window.draw(brushIconSprite);
 
         window.draw(eraserButton);
         window.draw(eraserText);
+        window.draw(eraserIconSprite);
 
         window.draw(saveButton);
         window.draw(saveText);
+        window.draw(saveIconSprite);
+
+        window.draw(deleteButton);
+        window.draw(deleteText);
+        window.draw(deleteIconSprite);
 
         window.display();
     }
