@@ -1,5 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include "Button.h"
+
     // Button colors
 
     extern const sf::Color normalColor(200, 200, 200);

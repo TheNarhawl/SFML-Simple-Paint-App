@@ -4,94 +4,86 @@
 #include <cmath>
 #include <thread>
 #include <chrono>
+#include <windows.h>
 #include "Button.h"
 
 enum class ToolMode { Brush, Eraser };
+void saveImage(const sf::Image& image);
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(1280, 720), "My Paint App", sf::Style::Titlebar | sf::Style::Close);
+    // <------ MAIN WINDOW ------>
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "MyPaintApp", sf::Style::Titlebar | sf::Style::Close);
     window.setFramerateLimit(60);
-
-
     sf::Texture backgroundTexture;
-    if (!backgroundTexture.loadFromFile("Resources/background.png")) {
-        return -1; // Выход из программы в случае ошибки
-    }
+    if (!backgroundTexture.loadFromFile("Resources/background.png")) return -1;
     sf::Sprite backgroundSprite(backgroundTexture);
 
-    // Канвас для рисования
-    sf::RectangleShape myCanvas(sf::Vector2f(840, 620));
-    myCanvas.setFillColor(sf::Color::White);
-    myCanvas.setPosition(sf::Vector2f(390, 50));
-
-    // Загружаем изображение для кастомного курсора
+    // Custom cursor
     sf::Image cursorImage;
-    if (!cursorImage.loadFromFile("Resources/cursor.png")) {
-        return -1;
-    }
+    if (!cursorImage.loadFromFile("Resources/cursor.png")) return -1;
     sf::Cursor cursor;
     cursor.loadFromPixels(cursorImage.getPixelsPtr(), cursorImage.getSize(), sf::Vector2u(0, 0));
     window.setMouseCursor(cursor);
 
+    // Global font
+    sf::Font font;
+    font.loadFromFile("Resources/alphbeta.ttf");
 
-    // Вектор для хранения всех линий (каждая линия — вектор сегментов)
+
+    // <------- DRAWING CANVAS -------->
+    sf::RectangleShape myCanvas(sf::Vector2f(840, 620));
+    myCanvas.setFillColor(sf::Color::White);
+    myCanvas.setPosition(sf::Vector2f(390, 50));
+
+    // Store all lines in a vector (each line is a vector of segments)
     std::vector<std::vector<sf::RectangleShape>> allLines;
     std::vector<sf::RectangleShape> currentLineSegments;
 
-    // Переменная для хранения предыдущей позиции мыши
+    // Store mouse last position
     sf::Vector2f lastMousePos;
     bool isDrawing = false;
 
-    // Инструмент по умолчанию - кисть
-    ToolMode currentTool = ToolMode::Brush;
 
-
-
-
-    // Размер кисти
+    // <---- BRUSH SETTINGS ----->
     float brushSize = 20.0f;
+    ToolMode currentTool = ToolMode::Brush; // brush by default
 
-    // Ползунок для выбора толщины
+
+    // <---- SLIDER ----->
     sf::RectangleShape slider(sf::Vector2f(290, 10));
     slider.setFillColor(sf::Color(50, 50, 50));
     slider.setPosition(50, 520);
 
-    // Индикатор положения на ползунке
+    // Position indicator on slider
     sf::RectangleShape sliderIndicator(sf::Vector2f(10, 20));
     sliderIndicator.setFillColor(sf::Color(0, 138, 230));
 
-    // Расчет позиции индикатора по отношению к brushSize
+    // Calculation of indicator position in relation to brushSize
     float minBrushSize = 1.0f;
     float maxBrushSize = 65.0f;
-
-    // Масштабируем положение индикатора на ползунке в зависимости от brushSize
     float indicatorPosition = slider.getPosition().x + ((brushSize - minBrushSize) / (maxBrushSize - minBrushSize)) * slider.getSize().x;
     sliderIndicator.setPosition(indicatorPosition, slider.getPosition().y - 5);
 
-
-
-    // Текст для отображения текущей толщины
-    sf::Font font;
-    font.loadFromFile("Resources/alphbeta.ttf");
+    // Brush size text
     sf::Text brushSizeText;
     brushSizeText.setFont(font);
     brushSizeText.setCharacterSize(32);
     brushSizeText.setFillColor(sf::Color::Black);
     brushSizeText.setPosition(slider.getPosition().x, slider.getPosition().y - 45);
 
-    // <------- Creating Buttons ------->
 
+
+    // <------- CREATING BUTTONS ------->
     Button brushButton(140, 40, 50, 570, "Brush", "Resources/brush.png", font);
     brushButton.setButtonColor("pressedColor");
     Button eraseButton(140, 40, 200, 570, "Erase", "Resources/eraser.png", font);
     Button saveButton(140, 40, 200, 630, "Save", "Resources/save.png", font);
     Button deleteButton(140, 40, 50, 630, "Delete", "Resources/trash.png", font);
 
+    
 
-    sf::Color brushColor = sf::Color::Black; // Начальный цвет кисти
-
-    // Цвета палитры
+    // <-------- PALETTE PARAMETERS --------->
     std::vector<sf::Color> paletteColors = {
         sf::Color::Red, 
         sf::Color::Green, 
@@ -99,19 +91,22 @@ int main()
         sf::Color::Yellow, 
         sf::Color::Magenta, 
         sf::Color::Cyan,
-        sf::Color(255, 165, 0), // Оранжевый
-        sf::Color(128, 0, 128), // Фиолетовый
+        sf::Color(255, 165, 0), // Orange
+        sf::Color(128, 0, 128), // Purple
         sf::Color::Black, 
         sf::Color::White
     };
 
-    // Вектор для хранения квадратов палитры
-    std::vector<sf::RectangleShape> paletteSquares;
-    sf::Vector2f palettePosition(50, 50); // Начальная позиция палитры
-    float squareSize = 20; // Размер квадрата палитры
-    float padding = 10;    // Расстояние между квадратами
+    // Brush initial Color
+    sf::Color brushColor = sf::Color::Black;
 
-    // Создаем квадраты палитры
+    // Palette squares storage
+    std::vector<sf::RectangleShape> paletteSquares;
+    sf::Vector2f palettePosition(50, 50);
+    float squareSize = 20;
+    float padding = 10;
+
+    // Drawing palette squares
     for (size_t i = 0; i < paletteColors.size(); ++i)
     {
         sf::RectangleShape square(sf::Vector2f(squareSize, squareSize));
@@ -120,17 +115,14 @@ int main()
         paletteSquares.push_back(square);
     }
 
-
-    // Окно для отображения выбранного цвета кисти
+    // Drawing picked color
     sf::RectangleShape selectedColorDisplay(sf::Vector2f(290, squareSize));
     selectedColorDisplay.setFillColor(brushColor);
     selectedColorDisplay.setPosition(palettePosition.x, palettePosition.y + squareSize + padding * 2);
 
 
-
     while (window.isOpen())
     {
-
         sf::Event event;
         while (window.pollEvent(event))
         {
@@ -138,22 +130,20 @@ int main()
             {
                 window.close();
             }
-                
-
-
-            // Проверка нажатия мыши на кнопки
+               
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
             {
                 sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 
-                // Проверяем, наведена ли мышь на квадрат палитры
+                // <----- PALETTE PROCESSING --->
                 for (size_t i = 0; i < paletteSquares.size(); ++i)
                 {
                     if (paletteSquares[i].getGlobalBounds().contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)))
                     {
+                        // Set the color if clicked
                         if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
                         {
-                            brushColor = paletteSquares[i].getFillColor(); // Устанавливаем цвет кисти при нажатии
+                            brushColor = paletteSquares[i].getFillColor(); 
                             selectedColorDisplay.setFillColor(brushColor);
                         }
                     }
@@ -161,7 +151,6 @@ int main()
 
 
                 // <----- SAVE BUTTON CLICK PROCESSING ---->
-
                 if (saveButton.isPressed(mousePos)) {
                     saveButton.setButtonColor("pressedColor");
                     saveButton.draw(window);
@@ -190,7 +179,7 @@ int main()
 
                     renderTexture.display();
                     sf::Image image = renderTexture.getTexture().copyToImage();
-                    image.saveToFile("drawing.png");
+                    saveImage(image);
 
                 }
 
@@ -224,7 +213,6 @@ int main()
 
                 // <----- BRUSH TOOL BUTTON CLICK PROCESSING ---->
 
-
                 if (brushButton.isPressed(mousePos))
                 {
                     currentTool = ToolMode::Brush;
@@ -234,7 +222,6 @@ int main()
 
                  
                 }
-
 
                 // <----- ERASE TOOL BUTTON CLICK PROCESSING ---->
 
@@ -247,7 +234,8 @@ int main()
 
                 }
 
-                // Проверка нажатия на ползунок
+
+                // <------ BRUSH SIZE SLIDER PROCESSING ------>
                 else if (slider.getGlobalBounds().contains(mousePos.x, mousePos.y))
                 {
                     float newPos = mousePos.x;
@@ -268,22 +256,39 @@ int main()
             }
         }
 
+
+        // Displaying the brush size
         brushSizeText.setString("Brush size: " + std::to_string(static_cast<int>(brushSize)));
 
+
+        // <--------- PAINT LOGICS ---------->
         if (isDrawing && sf::Mouse::isButtonPressed(sf::Mouse::Left))
         {
+            // Getting mouse cords
             sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
 
+            // If mouse is inside canvas
             if (myCanvas.getGlobalBounds().contains(mousePos))
             {
+                // Check if mouse actually moved
                 if (mousePos != lastMousePos)
                 {
+                    // Draw using segment lines
                     sf::RectangleShape lineSegment;
                     lineSegment.setFillColor(currentTool == ToolMode::Brush ? brushColor : sf::Color::White);
 
+                    /*      Math
+                        delta - is the vector of the difference between the current and previous mouse position
+                        length - calculates the distance between points (the length of a line segment) using Pythagoras' theorem.
+                        setOrigin - sets the center of the rectangle (along the brush thickness).
+                        setRotation - calculates the angle of the line using the arctangent (atan2) converted from radians to degrees.
+                        setPosition - sets the start point of the segment to lastMousePos.
+
+                        The segment is added to the list ofcurrent line segments (currentLineSegments).
+                        The last mouse position is updated (lastMousePos).
+                    */ 
 
                     sf::Vector2f delta = mousePos - lastMousePos;
-
                     float length = std::sqrt(delta.x * delta.x + delta.y * delta.y);
                     lineSegment.setSize(sf::Vector2f(length, brushSize));
                     lineSegment.setOrigin(0, brushSize / 2);
@@ -296,7 +301,7 @@ int main()
             }
         }
 
-
+        // If drawing is active but the left mouse button is released, the process of drawing finishes.
         else if (isDrawing && !sf::Mouse::isButtonPressed(sf::Mouse::Left))
         {
             if (!currentLineSegments.empty())
@@ -307,11 +312,7 @@ int main()
         }
 
 
-
-
-
-
-        
+        // Rendering canvas and paintings
         window.draw(backgroundSprite);
         window.draw(myCanvas);
 
@@ -328,15 +329,15 @@ int main()
             window.draw(segment);
         }
 
-        // Рисуем палитру
+        // Rendering palette
         for (const auto& square : paletteSquares)
         {
             window.draw(square);
         }
 
-        // Рисуем окно с выбранным цветом
         window.draw(selectedColorDisplay);
 
+        // Rendering slider
         window.draw(slider);
         window.draw(sliderIndicator);
         window.draw(brushSizeText);
@@ -351,4 +352,29 @@ int main()
     }
 
     return 0;
+}
+
+
+// Using windows.h to save the painting
+void saveImage(const sf::Image& image) {
+    wchar_t filename[MAX_PATH] = L"";
+    OPENFILENAMEW ofn;
+    ZeroMemory(&ofn, sizeof(ofn));
+
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = nullptr;
+    ofn.lpstrFilter = L"PNG Files\0*.png\0All Files\0*.*\0";
+    ofn.lpstrFile = filename;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_OVERWRITEPROMPT;
+    ofn.lpstrDefExt = L"png";
+
+    if (GetSaveFileNameW(&ofn)) {
+        std::wcout << L"Выбранный файл: " << filename << std::endl;
+        std::string filePath(filename, filename + wcslen(filename));
+        image.saveToFile(filePath);
+    }
+    else {
+        std::cout << "Операция отменена пользователем." << std::endl;
+    }
 }
