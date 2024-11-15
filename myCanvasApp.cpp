@@ -1,8 +1,10 @@
 ﻿#include <SFML/Graphics.hpp>
+#include <iostream>
 #include <vector>
 #include <cmath>
 #include <thread>
 #include <chrono>
+#include "Button.h"
 
 enum class ToolMode { Brush, Eraser };
 
@@ -33,11 +35,6 @@ int main()
     window.setMouseCursor(cursor);
 
 
-    // Базовые цвета кнопки
-    sf::Color normalButtonColor(200, 200, 200);
-    sf::Color pressedButtonColor(150, 150, 150);  // Более тёмный серый для нажатия
-
-
     // Вектор для хранения всех линий (каждая линия — вектор сегментов)
     std::vector<std::vector<sf::RectangleShape>> allLines;
     std::vector<sf::RectangleShape> currentLineSegments;
@@ -48,6 +45,7 @@ int main()
 
     // Инструмент по умолчанию - кисть
     ToolMode currentTool = ToolMode::Brush;
+
 
 
 
@@ -82,85 +80,13 @@ int main()
     brushSizeText.setFillColor(sf::Color::Black);
     brushSizeText.setPosition(slider.getPosition().x, slider.getPosition().y - 45);
 
-    // Кнопка "Кисть"
-    sf::Texture brushIconTexture;
-    if (!brushIconTexture.loadFromFile("Resources/brush.png")) {
-        return -1;
-    }
+    // <------- Creating Buttons ------->
 
-    sf::Sprite brushIconSprite;
-    brushIconSprite.setTexture(brushIconTexture);
-
-    sf::RectangleShape brushButton(sf::Vector2f(140, 40));
-    brushButton.setFillColor(normalButtonColor);
-    brushButton.setPosition(50, 570);
-    brushButton.setOutlineColor(sf::Color::Black);
-    brushButton.setOutlineThickness(2);
-
-    sf::Text brushText("Brush", font, 20);
-    brushText.setFillColor(sf::Color::Black);
-    brushText.setPosition(brushButton.getPosition().x + 15, brushButton.getPosition().y + 6);
-    brushIconSprite.setPosition(brushButton.getPosition().x + 100, brushButton.getPosition().y + 5);
-
-    // Кнопка "Ластик"
-    sf::Texture eraserIconTexture;
-    if (!eraserIconTexture.loadFromFile("Resources/eraser.png")) {
-        return -1;
-    }
-
-    sf::Sprite eraserIconSprite;
-    eraserIconSprite.setTexture(eraserIconTexture);
-
-    sf::RectangleShape eraserButton(sf::Vector2f(140, 40));
-    eraserButton.setFillColor(normalButtonColor);
-    eraserButton.setPosition(200, 570);
-    eraserButton.setOutlineColor(sf::Color::Black);
-    eraserButton.setOutlineThickness(2);
-
-    sf::Text eraserText("Eraser", font, 20);
-    eraserText.setFillColor(sf::Color::Black);
-    eraserText.setPosition(eraserButton.getPosition().x + 15, eraserButton.getPosition().y + 6);
-    eraserIconSprite.setPosition(eraserButton.getPosition().x + 100, eraserButton.getPosition().y + 5);
-
-
-
-    // Кнопка "Сохранить"
-    sf::Texture saveIconTexture;
-    if (!saveIconTexture.loadFromFile("Resources/save.png")) {
-        return -1;
-    }
-    sf::Sprite saveIconSprite;
-    saveIconSprite.setTexture(saveIconTexture);
-
-    sf::RectangleShape saveButton(sf::Vector2f(140, 40));
-    saveButton.setFillColor(normalButtonColor);
-    saveButton.setPosition(200, 630);
-    saveButton.setOutlineColor(sf::Color::Black);
-    saveButton.setOutlineThickness(2);
-
-    sf::Text saveText("Save", font, 20);
-    saveText.setFillColor(sf::Color::Black);
-    saveText.setPosition(saveButton.getPosition().x + 15, saveButton.getPosition().y + 6);
-    saveIconSprite.setPosition(saveButton.getPosition().x + 100, saveButton.getPosition().y + 5);
-
-    // Кнопка "Удалить"
-    sf::Texture deleteIconTexture;
-    if (!deleteIconTexture.loadFromFile("Resources/trash.png")) {
-        return -1;
-    }
-    sf::Sprite deleteIconSprite;
-    deleteIconSprite.setTexture(deleteIconTexture);
-
-    sf::RectangleShape deleteButton(sf::Vector2f(140, 40));
-    deleteButton.setFillColor(normalButtonColor);
-    deleteButton.setPosition(50, 630);
-    deleteButton.setOutlineColor(sf::Color::Black);
-    deleteButton.setOutlineThickness(2);
-
-    sf::Text deleteText("Delete", font, 20);
-    deleteText.setFillColor(sf::Color::Black);
-    deleteText.setPosition(deleteButton.getPosition().x + 15, deleteButton.getPosition().y + 6);
-    deleteIconSprite.setPosition(deleteButton.getPosition().x + 100, deleteButton.getPosition().y + 7);
+    Button brushButton(140, 40, 50, 570, "Brush", "Resources/brush.png", font);
+    brushButton.setButtonColor("pressedColor");
+    Button eraseButton(140, 40, 200, 570, "Erase", "Resources/eraser.png", font);
+    Button saveButton(140, 40, 200, 630, "Save", "Resources/save.png", font);
+    Button deleteButton(140, 40, 50, 630, "Delete", "Resources/trash.png", font);
 
 
     sf::Color brushColor = sf::Color::Black; // Начальный цвет кисти
@@ -208,8 +134,11 @@ int main()
         sf::Event event;
         while (window.pollEvent(event))
         {
-            if (event.type == sf::Event::Closed)
+            if (event.type == sf::Event::Closed) 
+            {
                 window.close();
+            }
+                
 
 
             // Проверка нажатия мыши на кнопки
@@ -230,81 +159,92 @@ int main()
                     }
                 }
 
-                // Обработка нажатия на кнопку "Сохранить"
-                if (saveButton.getGlobalBounds().contains(mousePos.x, mousePos.y))
-                {
-                    // Устанавливаем цвет нажатия
-                    saveButton.setFillColor(pressedButtonColor);
-                    window.draw(saveButton);    // Обновляем отображение, чтобы цвет изменился сразу
-                    window.draw(saveText);      // Рисуем текст на кнопке "Save"
-                    window.draw(saveIconSprite);
-                    window.display();           // Перерисовка окна для немедленного отображения эффекта
 
-                    // Запускаем асинхронный таймер для временного изменения цвета
-                    std::thread([&saveButton, normalButtonColor]() 
+                // <----- SAVE BUTTON CLICK PROCESSING ---->
+
+                if (saveButton.isPressed(mousePos)) {
+                    saveButton.setButtonColor("pressedColor");
+                    saveButton.draw(window);
+                    window.display();
+
+                    std::thread([&saveButton]() {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+                        saveButton.setButtonColor("normalColor");
+                        }).detach();
+
+
+                    // Save the image code
+                    sf::RenderTexture renderTexture;
+                    renderTexture.create(myCanvas.getSize().x, myCanvas.getSize().y);
+                    renderTexture.clear(sf::Color::White);
+
+                    // Shift all elements so that they correspond to the beginning of the RenderTexture
+                    for (const auto& line : allLines)
+                    {
+                        for (auto segment : line)
                         {
-
-                        std::this_thread::sleep_for(std::chrono::milliseconds(150));  // Пауза на 150 мс
-                        saveButton.setFillColor(normalButtonColor);  // Возвращаем нормальный цвет
-                        }).detach();  // Отсоединяем поток, чтобы не блокировать основной поток
-
-                        // Код для сохранения изображения
-                        sf::RenderTexture renderTexture;
-                        renderTexture.create(myCanvas.getSize().x, myCanvas.getSize().y);
-                        renderTexture.clear(sf::Color::White);
-
-                        // Смещаем все элементы так, чтобы они соответствовали началу RenderTexture
-                        for (const auto& line : allLines)
-                        {
-                            for (auto segment : line)
-                            {
-                                segment.move(-myCanvas.getPosition());
-                                renderTexture.draw(segment);
-                            }
+                            segment.move(-myCanvas.getPosition());
+                            renderTexture.draw(segment);
                         }
+                    }
 
-                        renderTexture.display();
-                        sf::Image image = renderTexture.getTexture().copyToImage();
-                        image.saveToFile("drawing.png");
+                    renderTexture.display();
+                    sf::Image image = renderTexture.getTexture().copyToImage();
+                    image.saveToFile("drawing.png");
+
                 }
 
-                // Проверка нажатия на Delete Button
-                if (deleteButton.getGlobalBounds().contains(mousePos.x, mousePos.y)) {
-                    deleteButton.setFillColor(pressedButtonColor);
+                
 
-                    // Запускаем асинхронный таймер
-                    std::thread([&deleteButton, normalButtonColor]() {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(150));  // Пауза на 150 мс
-                        deleteButton.setFillColor(normalButtonColor);  // Возвращаем нормальный цвет
-                        }).detach();  // Отсоединяем поток, чтобы не блокировать основной поток
+                // <----- DELETE BUTTON CLICK PROCESSING ---->
 
-                        // Очищаем myCanvas
-                        myCanvas.setFillColor(sf::Color::White);
-                        currentLineSegments.clear();
-                        allLines.clear();
+                if (deleteButton.isPressed(mousePos)) 
+                {
+                    deleteButton.setButtonColor("pressedColor");
+                    deleteButton.draw(window);
+                    window.display();
 
-                        // Перерисовываем окно
-                        window.draw(deleteButton);
-                        window.draw(deleteText);
-                        window.draw(deleteIconSprite);
-                        window.draw(myCanvas);
-                        window.display();
+                    std::thread([&deleteButton]() {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+                        deleteButton.setButtonColor("normalColor");
+                        }).detach();
+
+                // Clearing Canvas
+                    myCanvas.setFillColor(sf::Color::White);
+                    currentLineSegments.clear();
+                    allLines.clear();
+
+                // Rerender the window, button and canvas
+
+                    deleteButton.draw(window);
+                    window.draw(myCanvas);
+                    window.display();
+
                 }
 
-                // Обработка выбора кисти
-                if (brushButton.getGlobalBounds().contains(mousePos.x, mousePos.y))
+                // <----- BRUSH TOOL BUTTON CLICK PROCESSING ---->
+
+
+                if (brushButton.isPressed(mousePos))
                 {
                     currentTool = ToolMode::Brush;
-                    brushButton.setFillColor(pressedButtonColor);
-                    eraserButton.setFillColor(normalButtonColor);
+
+                    brushButton.setButtonColor("pressedColor");
+                    eraseButton.setButtonColor("normalColor");
+
+                 
                 }
 
-                // Обработка выбора ластика
-                else if (eraserButton.getGlobalBounds().contains(mousePos.x, mousePos.y))
+
+                // <----- ERASE TOOL BUTTON CLICK PROCESSING ---->
+
+                else if (eraseButton.isPressed(mousePos))
                 {
                     currentTool = ToolMode::Eraser;
-                    eraserButton.setFillColor(pressedButtonColor);
-                    brushButton.setFillColor(normalButtonColor);
+
+                    brushButton.setButtonColor("normalColor");
+                    eraseButton.setButtonColor("pressedColor");
+
                 }
 
                 // Проверка нажатия на ползунок
@@ -401,22 +341,11 @@ int main()
         window.draw(sliderIndicator);
         window.draw(brushSizeText);
 
-        // Рисуем кнопки и их текст
-        window.draw(brushButton);
-        window.draw(brushText);
-        window.draw(brushIconSprite);
-
-        window.draw(eraserButton);
-        window.draw(eraserText);
-        window.draw(eraserIconSprite);
-
-        window.draw(saveButton);
-        window.draw(saveText);
-        window.draw(saveIconSprite);
-
-        window.draw(deleteButton);
-        window.draw(deleteText);
-        window.draw(deleteIconSprite);
+        // Rendering all buttons
+        brushButton.draw(window);
+        eraseButton.draw(window);
+        saveButton.draw(window);
+        deleteButton.draw(window);
 
         window.display();
     }
