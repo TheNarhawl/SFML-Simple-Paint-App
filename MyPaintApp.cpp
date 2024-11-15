@@ -179,7 +179,10 @@ int main()
 
                     renderTexture.display();
                     sf::Image image = renderTexture.getTexture().copyToImage();
-                    saveImage(image);
+
+                    std::thread([image]() {
+                        saveImage(image);
+                        }).detach();
 
                 }
 
@@ -377,4 +380,6 @@ void saveImage(const sf::Image& image) {
     else {
         std::cout << "Операция отменена пользователем." << std::endl;
     }
+
+    std::cin.get();
 }
